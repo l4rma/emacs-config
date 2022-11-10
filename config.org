@@ -1,0 +1,553 @@
+#+title: My Emacs Config
+#+author: Lars M
+#+startup: fold
+* Information
+This is my emacs config. It's is a work in progress after moving away from doom emacs trying to write a config from scratch. The plan is to just use emacs and add more packages and configurations as I go when ever there is something I need. 
+
+** Todo
+- Add link to source/documentation to all packages used
+- Add descriptions
+- Add support for more languages (c, go, java) 
+
+* Package Management
+** Initialize package sources
+Initialize and add more archives
+#+begin_src emacs-lisp
+  (require 'package)
+  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                           ("org" . "https://orgmode.org/elpa/")
+                           ("elpa" . "https://elpa.gnu.org/packages/")))
+
+  (package-initialize)
+  (unless package-archive-contents
+    (package-refresh-contents))
+#+end_src
+
+** Initialize use-package
+#+begin_src emacs-lisp
+  (unless (package-installed-p 'use-package)
+    (package-install 'use-package))
+
+  (require 'use-package)
+  (setq use-package-always-ensure t)
+#+end_src
+
+* General Settings
+** Dont show spash screen/startup message
+#+begin_src emacs-lisp
+  (setq inhibit-startup-message t)
+#+end_src
+
+** Remove visual noise
+#+begin_src emacs-lisp
+  (scroll-bar-mode -1)        ; Disable visible scrollbar
+  (tool-bar-mode -1)          ; Disable the toolbar
+  (tooltip-mode -1)           ; Disable tooltips
+  (set-fringe-mode 10)        ; Give some breathing room
+  (menu-bar-mode -1)            ; Disable the menu bar
+  (setq ring-bell-function 'ignore)
+#+end_src
+
+** Display relative line numbers
+#+begin_src emacs-lisp
+  (global-display-line-numbers-mode t)
+  (setq display-line-numbers-type 'relative)
+#+end_src
+
+** Disable line numbers for some modes
+#+begin_src emacs-lisp
+  (dolist (mode '(org-mode-hook
+                  term-mode-hook
+                  vterm-mode-hook
+                  shell-mode-hook
+                  eshell-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode 0))))
+#+end_src
+
+** Scrolling
+#+begin_src emacs-lisp
+ (setq scroll-margin 8
+      scroll-conservatively 101
+      scroll-up-aggressively 0.01
+      scroll-down-aggressively 0.01
+      scroll-preserve-screen-position t
+      auto-window-vscroll nil) 
+#+end_src
+
+** Auto save and backups
+#+begin_src emacs-lisp
+  (setq custom-file "~/.emacs.d/custom.el")
+  (load custom-file t)
+
+  (setq auto-save-file-name-transforms
+        '(("." "~/.emacs.d/auto-save-list/" t))
+        backup-directory-alist
+        '(("." . "~/.emacs.d/backups")))
+#+end_src
+
+** Save list of recent files
+#+begin_src emacs-lisp
+(require 'recentf)
+(recentf-mode 1)
+(setq recentf-max-menu-items 25)
+#+end_src
+
+* UI
+** Set font size
+#+begin_src emacs-lisp
+  (defvar lm/default-font-size 128)
+#+end_src
+
+** Set the default face
+#+begin_src emacs-lisp
+  (set-face-attribute 'default nil :font "Iosevka" :height lm/default-font-size)
+#+end_src
+
+** Set the fixed pitch face
+If :height is not set. The text in code blocks will not resize when C-+ and C--, but be static.
+#+begin_src emacs-lisp
+  (set-face-attribute 'fixed-pitch nil :font "Iosevka" :height 1.0)
+#+end_src
+
+** Set the variable pitch face
+#+begin_src emacs-lisp
+  (set-face-attribute 'variable-pitch nil :font "Alegreya" :height 1.4 :weight 'regular)
+#+end_src
+
+** Font icons
+#+begin_src emacs-lisp
+  (use-package all-the-icons)
+#+end_src
+
+** Cursor
+Set cursor as box in insert mode with the color of the lightes gruvbox white
+(which is darker than the default cursor)
+#+begin_src emacs-lisp
+  ;; (setq evil-insert-state-cursor '(box "#fbf1c7")
+  ;;       evil-normal-state-cursor '(box "#fbf1c7"))
+#+end_src
+
+** Set color scheme
+#+begin_src emacs-lisp
+  (use-package doom-themes
+    :config
+    (load-theme 'doom-zenburn t))
+#+end_src
+
+** Doom Modeline
+#+begin_src emacs-lisp
+  (use-package doom-modeline
+    :init (doom-modeline-mode 1)
+    :custom ((doom-modeline-height 15)))
+#+end_src
+
+* Modes and packages
+** Evil mode
+#+begin_src emacs-lisp
+  (use-package evil
+    :init
+    (setq evil-want-keybinding nil)
+    (setq evil-want-C-u-scroll t)
+    ;(setq evil-vsplit-window-right t)
+    ;(setq evil-split-window-below t)
+    :config
+    (evil-mode)
+    (evil-set-undo-system 'undo-redo))
+
+  (use-package evil-commentary
+    :after evil
+    :config
+    (evil-commentary-mode))
+
+  (use-package evil-collection
+    :after evil
+    :config
+    (evil-collection-init))
+  ;; (with-eval-after-load 'evil-maps
+  ;;   (define-key evil-motion-state-map (kbd "RET") nil))
+#+end_src
+
+** Tree Sitter
+#+begin_src emacs-lisp
+  (use-package tree-sitter)
+  (use-package tree-sitter-langs)
+  (global-tree-sitter-mode)
+  (add-hook 'tree-sitter-after-on-hook #'tree-sitter-hl-mode)
+#+end_src
+
+** Treemacs
+#+begin_src emacs-lisp
+  (use-package treemacs)
+  (use-package treemacs-evil
+    :after (treemacs evil))
+  (use-package lsp-treemacs)
+  (use-package treemacs-projectile
+    :after (treemacs projectile))
+  (use-package treemacs-magit
+      :after (treemacs magit))
+#+end_src
+
+** Magit
+#+begin_src emacs-lisp
+(use-package magit)
+#+end_src
+
+** Vertico
+#+begin_src emacs-lisp
+  (use-package vertico
+    :bind (:map vertico-map
+                ("C-j" . vertico-next)
+                ("C-k" . vertico-previous))
+    :init
+    (vertico-mode))
+#+end_src
+
+** Orderless
+#+begin_src emacs-lisp
+  (use-package orderless
+    :config
+    (setq completion-styles '(orderless)))
+#+end_src
+
+** Marginalia
+#+begin_src emacs-lisp
+  (use-package marginalia
+    :after vertico
+    :config
+    (marginalia-mode))
+#+end_src
+
+** Embark
+#+begin_src emacs-lisp
+  (use-package embark)
+#+end_src
+
+** Consult
+#+begin_src emacs-lisp
+  (use-package consult)
+#+end_src
+
+** Flycheck
+#+begin_src emacs-lisp
+  (use-package flycheck
+    :init
+    (global-flycheck-mode))
+#+end_src
+
+** Projectile
+#+begin_src emacs-lisp
+  (use-package projectile
+    :init (projectile-mode +1)
+    :config
+    (define-key
+        projectile-mode-map
+        (kbd "C-c p")
+      'projectile-command-map))
+#+end_src
+
+** Company
+#+begin_src emacs-lisp
+  (use-package company
+    :init
+    (add-hook 'after-init-hook 'global-company-mode))
+#+end_src
+
+** Elfeed
+#+begin_src emacs-lisp
+  (use-package elfeed
+    :config
+    (setq elfeed-feeds
+      '(("www.nrk.no/toppsaker.rss" news)
+        ("https://xkcd.com/rss.xml" comedy)
+         "http://www.reddit.com/r/battlestations/.rss"))
+    (setq-default elfeed-search-filter "@1-week-ago +unread "))
+#+end_src
+
+** Yasnippet
+#+begin_src emacs-lisp
+  (use-package yasnippet
+    :config
+    ;; (setq yas-snippet-dirs '("~/.emacs.d/snippets"))
+    (add-to-list 'load-path
+              "~/.emacs.d/plugins/yasnippet")
+    (require 'yasnippet)
+    (yas-global-mode 1))
+  (use-package yasnippet-snippets)
+#+end_src
+
+** Which Key
+#+begin_src emacs-lisp
+(use-package which-key
+  :init (which-key-mode)
+  :diminish which-key-mode
+  :config
+  (setq which-key-idle-delay 1))
+#+end_src
+
+** Vterm
+#+begin_src emacs-lisp
+    (use-package vterm
+      :commands vterm
+      :config
+      ;(setq term-prompt-regexp "^[^#$%>\n]*[#$%>] *")  ;; Set this to match your custom shell prompt
+      (setq vterm-shell "zsh")
+      (setq vterm-max-scrollback 10000))
+
+    (use-package vterm-toggle)
+#+end_src
+*** Set zsh as default shell instead of bash 
+#+begin_src emacs-lisp
+(setq explicit-shell-file-name "/usr/bin/zsh")
+(setq shell-file-name "zsh")
+(setq explicit-zsh-args '("--login" "--interactive"))
+(defun zsh-shell-mode-setup ()
+  (setq-local comint-process-echoes t))
+(add-hook 'shell-mode-hook #'zsh-shell-mode-setup)
+#+end_src
+
+* Org-Mode
+** Org mode font setup
+#+begin_src emacs-lisp
+  (defun lm/org-font-setup ()
+    ;; Replace list hyphen with dot
+    (font-lock-add-keywords 'org-mode
+                            '(("^ *\\([-]\\) "
+                               (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+
+    ;; Set faces for heading levels
+    (dolist (face '((org-document-title 1.7 "#cc241d" bold)
+           (org-level-1 1.75 "#d79921" bold)
+           (org-level-2 1.40 "#d65d0e" bold)
+           (org-level-3 1.30 "#cc241d" bold)
+           (org-level-4 1.20 "#458588" normal)
+           (org-level-5 1.10 "#b16286" normal)
+           (org-level-6 1.05 "#689d6a" normal)
+           (org-level-7 1.00 "#d79921" normal)
+           (org-level-8 1.00 "#8ec07c" normal)))
+      (set-face-attribute (nth 0 face) nil :font "Alegreya" :weight (nth 3 face) :height (nth 1 face))) ; :foreground (nth 2 face)))
+
+    ;; Ensure that anything that should be fixed-pitch in Org files appears that way
+    (set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+    (set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-table nil   :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-checkbox nil :foreground "#98971a" :inherit 'fixed-pitch))
+#+end_src
+
+** Set up org mode and org agenda
+#+begin_src emacs-lisp
+  (defun lm/org-mode-setup ()
+    (org-indent-mode)
+    (variable-pitch-mode 1)
+    (visual-line-mode 1))
+
+  (use-package org
+    :hook (org-mode . lm/org-mode-setup)
+    :config
+    (lm/org-font-setup)
+    (setq org-ellipsis " ▾")
+    (setq org-return-follows-link t)
+    (evil-define-key 'normal org-mode-map (kbd "<RET>") 'org-ctrl-c-ctrl-c)
+
+    (setq org-directory "~/Documents/org/"
+          org-agenda-files (list "~/Documents/org/agenda.org"
+                               "~/Documents/org/work.org"
+                               "~/Documents/org/emacs.org"
+                               "~/Documents/org/gtd.org"
+                               "~/Documents/org/home.org")
+          org-hide-emphasis-markers t
+          org-log-done 'time
+          org-log-done t
+          org-ellipsis " ▾"
+          org-todo-keywords        ; This overwrites the default Doom org-todo-keywords
+            '((sequence
+               "TODO(t)"
+               "IN-PROGRESS(p)"
+               "WAITING(w)"
+               "|"
+               "DONE(d)"
+               "CANCELLED(c)" )))
+
+    (setq org-capture-templates
+          '(("t" "Todo" entry (file+headline "~/Dropbox/documents/org/Todo.org" " Tasks")
+             "* TODO %?\n  %i\n  %a")
+            ("e" "Emacs" entry (file+headline "~/Documents/org/emacs.org" "Tips, Triks og Todos")
+             "* %?\n %t\n %i\n  %a")
+            ("n" "Notes" entry (file+headline "~/Dropbox/documents/org/notater.org" "Notater")
+             "* TODO %?\n %i\n %a")
+            ("j" "Journal" entry (file+datetree "~/Documents/org/journal.org")
+             "* %?\nEntered on %U\n  %i\n  %a"))))
+#+end_src
+
+** Org Tempo
+Needed for "begin_src" snippit ("<s" tab)
+#+begin_src emacs-lisp
+  (require 'org-tempo)
+#+end_src
+
+** Org bullets
+Add specific bullets
+#+begin_src emacs-lisp
+  (use-package org-bullets
+    :after org
+    :hook (org-mode . org-bullets-mode)
+    :custom
+    (org-bullets-bullet-list '("⋄" "∘")))
+#+end_src
+
+** Visual fill
+Center text with wide columns
+#+begin_src emacs-lisp
+  (defun lm/org-mode-visual-fill ()
+    (setq visual-fill-column-width 128
+          visual-fill-column-center-text t)
+    (visual-fill-column-mode 1))
+
+  (use-package visual-fill-column
+    :hook (org-mode . lm/org-mode-visual-fill))
+
+#+end_src
+
+* Keybindings 
+** Make ESC quit prompts
+#+begin_src emacs-lisp
+  (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+#+end_src
+
+** INC/DEC font
+  Zoom in/out like we do everywhere else.
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-+") 'text-scale-increase)
+  (global-set-key (kbd "C--") 'text-scale-decrease)
+  (global-set-key (kbd "<C-wheel-up>") 'text-scale-increase)
+  (global-set-key (kbd "<C-wheel-down>") 'text-scale-decrease)
+#+end_src
+
+** SPC-Bindings
+#+begin_src emacs-lisp
+  (use-package general
+    :config
+    (general-define-key
+      :keymaps '(normal insert emacs)
+      :prefix "SPC"
+      :non-normal-prefix "C-SPC"
+      "." 'find-file
+    ;; Help
+      "h f" 'describe-function
+      "h k" 'describe-key
+    ;; Files
+      "f s" 'save-buffer
+      "f r" 'consult-recent-file
+      "f p" (lambda() (interactive) (find-file "~/.emacs.d/config.org"))
+      "b" 'consult-buffer
+    ;; Open something 
+      "o t" 'org-todo
+      "o o" 'org-open-at-point
+      "o e" 'elfeed
+      "o c" 'org-goto-calendar
+    ;; Embark Keybindings
+      "g" 'embark-act
+    ;; Misc
+      "e" 'eval-last-sexp
+      "'" 'org-edit-src-code
+      "r" 'elfeed-update
+      "t" 'vterm-toggle
+      "n" 'treemacs
+      "p" 'projectile-command-map
+      "c" 'comment-line
+      "y" 'yas-insert-snippet
+      ))
+#+end_src
+
+* Languages
+** LSP mode
+#+begin_src emacs-lisp
+  (use-package lsp-mode
+    :config
+    (lsp-enable-which-key-integration t))
+#+end_src
+
+** Dap-mode
+#+begin_src emacs-lisp
+  (use-package dap-mode
+    :after lsp-mode
+    :config (dap-auto-configure-mode))
+  ;; Fix symbols in testing
+  (add-hook 'compilation-filter-hook
+          (lambda () (ansi-color-apply-on-region (point-min) (point-max))))
+#+end_src
+
+** Python
+#+begin_src emacs-lisp
+ (use-package lsp-pyright
+  :ensure t
+  :hook (python-mode . (lambda ()
+                          (require 'lsp-pyright)
+                          (lsp))))  ; or lsp-deferred 
+#+end_src
+
+** Java
+*** LSP-java
+#+begin_src emacs-lisp
+  (use-package lsp-java
+  :bind
+  (:map lsp-mode-map
+        (("\C-\M-b" . lsp-find-implementation)
+         ("M-RET" . lsp-execute-code-action)))
+  :config
+  (add-hook 'java-mode-hook 'lsp))
+#+end_src
+
+*** Dap-java
+#+begin_src emacs-lisp
+  (use-package dap-java
+    :ensure nil
+    :after (lsp-java)
+
+    :config
+    (global-set-key (kbd "<f7>") 'dap-step-in)
+    (global-set-key (kbd "<f8>") 'dap-next)
+    (global-set-key (kbd "<f9>") 'dap-continue))  
+
+#+end_src
+
+** Rust
+#+begin_src emacs-lisp
+  (use-package rustic
+    :bind (("<f6>" . rustic-format-buffer))
+    :config
+    (require 'lsp-rust)
+    (setq lsp-rust-analyzer-completion-add-call-parenthesis nil))
+#+end_src
+
+** JavaScript
+*** RJSX mode
+#+begin_src emacs-lisp
+  (use-package rjsx-mode
+    :mode "\\.js\\'")
+#+end_src
+
+*** Tide
+#+begin_src emacs-lisp
+  (defun setup-tide-mode ()
+    (interactive)
+    (tide-setup)
+    (flycheck-mode +1)
+    (setq flycheck-check-syntax-automatically '(save mode-enabled))
+    (eldoc-mode +1)
+    (tide-hl-identifier-mode +1)
+    (company-mode +1))
+  (use-package tide
+    :after (rjsx-mode company flycheck)
+    :hook (rjsx-mode . setup-tide-mode))
+#+end_src
+
+*** Prettier
+#+begin_src emacs-lisp
+  (use-package prettier-js
+   :after (rjsx-mode)
+   :hook (rjsx.mode - prettier-js-mode))
+#+end_src
+
