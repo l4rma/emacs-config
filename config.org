@@ -224,7 +224,7 @@ Set cursor as box in insert mode with the color of the lightes gruvbox white
 
 ** Consult
 #+begin_src emacs-lisp
-  (use-package consult)
+;;  (use-package consult)
 #+end_src
 
 ** Flycheck
